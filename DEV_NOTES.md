@@ -143,3 +143,56 @@ Architecture decisions
 
 That’s exactly the jump from:
 👉 “learning syntax” → “building real apps”
+Nice — that’s a big milestone 👍
+Your code is now safely committed locally.
+
+🚀 Next: Push to GitHub
+1. Create repo on GitHub
+
+Go to:
+👉 GitHub
+
+Click New repository
+Name: candle-shop
+❌ Do NOT initialize with README
+2. Copy the commands GitHub gives you
+
+Run in PowerShell (from your project root):
+
+git remote add origin https://github.com/YOUR_USERNAME/candle-shop.git
+git branch -M main
+git push -u origin main
+
+👉 Replace YOUR_USERNAME with your GitHub username
+
+🔐 Login note (important)
+
+GitHub may ask for:
+
+Username ✔
+Password ❌ (no longer works)
+
+👉 Use a Personal Access Token (PAT) instead
+
+If needed, I can guide you to create one.
+
+🧪 Verify
+
+After push:
+
+Refresh your GitHub repo
+You should see:
+backend/
+frontend/
+DEV_NOTES.md
+🎯 After this
+
+Your project is:
+
+✔ Backed up
+✔ Shareable
+✔ Ready for deployment
+🔥 Next step
+
+👉 Deploy backend (Flask → Render)
+👉 Then frontend (React → Vercel)
