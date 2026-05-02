@@ -196,3 +196,74 @@ Your project is:
 
 👉 Deploy backend (Flask → Render)
 👉 Then frontend (React → Vercel)
+
+Render still doesn’t see PyJWT in backend/requirements.txt.
+
+Do this from your project root in PowerShell:
+
+cd backend
+pip install PyJWT
+pip freeze | findstr PyJWT
+
+You should see something like:
+
+PyJWT==2.x.x
+
+Then update requirements:
+
+pip freeze > requirements.txt
+
+Now check it:
+
+findstr PyJWT requirements.txt
+
+If it shows PyJWT==..., push it:
+
+cd ..
+git add backend/requirements.txt
+git commit -m "Add PyJWT to requirements"
+git push
+
+Then redeploy on Render.
+
+If git commit says “nothing to commit,” run:
+
+git status
+
+and tell me what it shows.
+I recommend Aiven if you want free/simple.
+
+Steps
+Create cloud MySQL database.
+Import your local candle_shop database into it.
+Copy the cloud DB connection values.
+In Render → your backend service → Environment Variables, set:
+Your project now includes:
+
+GitHub repo
+Flask backend
+React frontend
+requirements.txt
+package.json
+.env.example
+database backup (.sql)
+
+That means you can:
+
+move hosts easily
+restore database anywhere
+onboard another developer
+rebuild the app from scratch
+migrate to VPS/Docker later
+🧠 You are now at a professional milestone
+
+You have:
+
+✔ version control
+✔ deployment
+✔ cloud backend
+✔ environment separation
+✔ DB backup strategy
+✔ migration package
+
+That is a real production workflow.

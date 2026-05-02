@@ -7,7 +7,7 @@ import OrdersPage from "./pages/OrdersPage";
 import { etb } from "./utils/format";
 import "./App.css";
 
-const API = "http://127.0.0.1:5000";
+import { API } from "./config";
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -68,7 +68,6 @@ export default function App() {
   }
   function handleUnauthorized() {
     setLoggedIn(false);
-    setSelectedInvoice(null);
     setLoginForm({
       username: "",
       password: "",
@@ -580,7 +579,7 @@ export default function App() {
                   <tbody>
                     {lowStock.map((item, index) => (
                       <tr key={index}>
-                        <td style={styles.td}>{item.item_type}</td>
+                        <td style={styles.td}>{item.candle_type}</td>
                         <td style={styles.td}>{item.item_name}</td>
                         <td style={styles.td}>{item.qty_available}</td>
                         <td style={styles.td}>{item.reorder_level}</td>
