@@ -1,3 +1,5 @@
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import HomePage from "./pages/public/HomePage";
 import React, { useEffect, useMemo, useState } from "react";
 import { saveToken, removeToken } from "./auth";
 import { authFetch } from "./api";
@@ -6,13 +8,15 @@ import CustomersPage from "./pages/CustomersPage";
 import OrdersPage from "./pages/OrdersPage";
 import { etb } from "./utils/format";
 import "./App.css";
+import LoginPage from "./pages/admin/LoginPage";
 
 import { API } from "./config";
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("token"));
   const [page, setPage] = useState("products");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState({
     total_products: 0,
     total_customers: 0,
@@ -78,26 +82,32 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const res = await fetch(`${API}/admin/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: loginForm.username,
-        password: loginForm.password,
-      }),
-    });
+    try {
+      const res = await fetch(`${API}/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: loginForm.username,
+          password: loginForm.password,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      saveToken(data.token);
-      setLoggedIn(true);
-      setPage("products");
-      setMessage("Login successful");
-    } else {
-      setMessage(data.message || "Login failed");
+      if (data.success) {
+        saveToken(data.token);
+        setLoggedIn(true);
+        setPage("products");
+        setMessage("");
+        navigate("/admin", { replace: true });
+      } else {
+        setMessage(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setMessage("Login request failed. Check backend/API URL.");
     }
   };
 
@@ -105,11 +115,9 @@ export default function App() {
     removeToken();
     setLoggedIn(false);
     setPage("products");
-    setLoginForm({
-      username: "",
-      password: "",
-    });
+    setLoginForm({ username: "", password: "" });
     setMessage("Logged out");
+    navigate("/login", { replace: true });
   }
 
 
@@ -372,356 +380,181 @@ export default function App() {
       marginTop: "8px",
     },
   };
-
-  if (!loggedIn) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.loginWrap}>
-          <div style={styles.card}>
-            <h1 style={styles.heading}>Candle Shop Admin</h1>
-            <p>Login</p>
-
-            <form onSubmit={handleLogin}>
-              <label style={styles.label}>Username</label>
-              <input
-                style={styles.input}
-                type="text"
-                placeholder="Username"
-                value={loginForm.username}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, username: e.target.value })
-                }
-              />
-
-              <label style={styles.label}>Password</label>
-              <input
-                style={styles.input}
-                type="password"
-                placeholder="Password"
-                value={loginForm.password}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, password: e.target.value })
-                }
-              />
-
-              <button style={styles.button} type="submit">
-                Login
-              </button>
-            </form>
-
-            {message && <div style={{ ...styles.message, marginTop: "16px" }}>{message}</div>}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={styles.page}>
-      <div style={styles.shell}>
-        <h1 style={styles.heading}>Candle Shop</h1>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
 
-        {message && <div style={styles.message}>{message}</div>}
+      <Route
+        path="/login"
+        element={
+          !loggedIn ? (
+            <LoginPage
+              styles={styles}
+              loginForm={loginForm}
+              setLoginForm={setLoginForm}
+              handleLogin={handleLogin}
+              message={message}
+            />
+          ) : (
+            <Navigate to="/admin" replace />
+          )
+        }
+      />
 
-        <div style={styles.topBar}>
-          <button style={styles.button} onClick={() => setPage("products")}>
-            Products
-          </button>
-          <button style={styles.button} onClick={() => setPage("customers")}>
-            Customers
-          </button>
-          <button style={styles.button} onClick={() => setPage("orders")}>
-            Orders
-          </button>
-          <button style={styles.button} onClick={() => setPage("reports")}>
-            Reports
-          </button>
-          <button style={styles.button} onClick={() => setPage("orders")}>
-            Invoice
-          </button>
-          <button style={styles.button} onClick={() => setPage("dashboard")}>
-            Dashboard
-          </button>
-          <button style={styles.dangerButton} onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
+      <Route
+        path="/admin"
+        element={
+          loggedIn ? (
+            <div style={styles.page}>
+              <div style={styles.shell}>
+                <h1 style={styles.heading}>Candle Shop</h1>
 
-        {page === "dashboard" && (
-          <div>
-            <div style={styles.dashboardGrid}>
-              <div style={styles.statCard}>
-                <div style={styles.statLabel}>Total Products</div>
-                <div style={styles.statValue}>{dashboard.total_products}</div>
-              </div>
+                {message && <div style={styles.message}>{message}</div>}
 
-              <div style={styles.statCard}>
-                <div style={styles.statLabel}>Total Customers</div>
-                <div style={styles.statValue}>{dashboard.total_customers}</div>
-              </div>
-
-              <div style={styles.statCard}>
-                <div style={styles.statLabel}>Total Orders</div>
-                <div style={styles.statValue}>{dashboard.total_orders}</div>
-              </div>
-
-              <div style={styles.statCard}>
-                <div style={styles.statLabel}>Total Sales</div>
-                <div style={styles.statValue}>ETB {dashboard.total_sales.toFixed(2)}</div>
-              </div>
-            </div>
-
-            <div style={styles.grid2}>
-              <div style={styles.card}>
-                <h2>Low Stock Alerts</h2>
-                {lowStock.length === 0 ? (
-                  <p>No low stock alerts.</p>
-                ) : (
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Item</th>
-                        <th style={styles.th}>Qty</th>
-                        <th style={styles.th}>Reorder Level</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lowStock.slice(0, 5).map((item, index) => (
-                        <tr key={index}>
-                          <td style={styles.td}>{item.item_name}</td>
-                          <td style={styles.td}>{item.qty_available}</td>
-                          <td style={styles.td}>{item.reorder_level}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              <div style={styles.card}>
-                <h2>Top Selling Products</h2>
-                {salesSummary.length === 0 ? (
-                  <p>No sales summary available yet.</p>
-                ) : (
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Product</th>
-                        <th style={styles.th}>Qty Sold</th>
-                        <th style={styles.th}>Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...salesSummary]
-                        .sort((a, b) => Number(b.total_qty_sold) - Number(a.total_qty_sold))
-                        .slice(0, 5)
-                        .map((item) => (
-                          <tr key={item.product_id}>
-                            <td style={styles.td}>{item.product_name}</td>
-                            <td style={styles.td}>{item.total_qty_sold}</td>
-                            <td style={styles.td}>ETB {Number(item.total_revenue).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {page === "products" && (
-          <ProductsPage
-            styles={styles}
-            setMessage={setMessage}
-            handleUnauthorized={handleUnauthorized}
-            loadDashboard={loadDashboard}
-            loadLowStock={loadLowStock}
-          />
-        )}
-
-        {page === "customers" && (
-          <CustomersPage
-            styles={styles}
-            setMessage={setMessage}
-            handleUnauthorized={handleUnauthorized}
-            loadDashboard={loadDashboard}
-          />
-        )}
-
-        {page === "orders" && (
-          <OrdersPage
-            styles={styles}
-            setMessage={setMessage}
-            handleUnauthorized={handleUnauthorized}
-            loadDashboard={loadDashboard}
-            loadLowStock={loadLowStock}
-          />
-        )}
-
-        {page === "reports" && (
-          <div style={styles.grid2}>
-            <div style={styles.card}>
-              <h2>Low Stock Alerts</h2>
-              {lowStock.length === 0 ? (
-                <p>No low stock alerts.</p>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Item Type</th>
-                      <th style={styles.th}>Item Name</th>
-                      <th style={styles.th}>Qty Available</th>
-                      <th style={styles.th}>Reorder Level</th>
-                      <th style={styles.th}>Unit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lowStock.map((item, index) => (
-                      <tr key={index}>
-                        <td style={styles.td}>{item.candle_type}</td>
-                        <td style={styles.td}>{item.item_name}</td>
-                        <td style={styles.td}>{item.qty_available}</td>
-                        <td style={styles.td}>{item.reorder_level}</td>
-                        <td style={styles.td}>{item.unit}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div style={styles.card}>
-              <h2>Sales Summary By Product</h2>
-              {salesSummary.length === 0 ? (
-                <p>No sales summary available yet.</p>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Product ID</th>
-                      <th style={styles.th}>Product Name</th>
-                      <th style={styles.th}>Total Qty Sold</th>
-                      <th style={styles.th}>Total Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesSummary.map((item) => (
-                      <tr key={item.product_id}>
-                        <td style={styles.td}>{item.product_id}</td>
-                        <td style={styles.td}>{item.product_name}</td>
-                        <td style={styles.td}>{item.total_qty_sold}</td>
-                        <td style={styles.td}>{etb(item.total_revenue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
-
-        {page === "invoice" && (
-          <div style={styles.invoiceWrap}>
-            {!selectedInvoice ? (
-              <div>
-                <h2>Invoice</h2>
-                <p>Select an order from the Orders page, then click Preview or Download PDF.</p>
-              </div>
-            ) : (
-              <div id="invoice-area">
-                <div style={styles.invoiceHeader}>
-                  <div>
-                    <h1 style={styles.invoiceTitle}>INVOICE</h1>
-                    <div style={styles.invoiceMeta}>
-                      <div><strong>Business:</strong> Candle Shop</div>
-                      <div><strong>Address:</strong> Addis Ababa, Ethiopia</div>
-                      <div><strong>Phone:</strong> +251</div>
-                    </div>
-                  </div>
-
-                  <div style={styles.invoiceMeta}>
-                    <div><strong>Invoice #:</strong> {selectedInvoice.order_id}</div>
-                    <div><strong>Date:</strong> {selectedInvoice.order_date}</div>
-                    <div><strong>Status:</strong> {selectedInvoice.status}</div>
-                  </div>
-                </div>
-
-                <h3 style={styles.invoiceSectionTitle}>Bill To</h3>
-                <div style={styles.card}>
-                  <div><strong>Name:</strong> {selectedInvoice.customer_name}</div>
-                  <div><strong>Phone:</strong> {selectedInvoice.phone || "-"}</div>
-                  <div><strong>Email:</strong> {selectedInvoice.email || "-"}</div>
-                  <div><strong>Address:</strong> {selectedInvoice.address || "-"}</div>
-                </div>
-
-                <h3 style={styles.invoiceSectionTitle}>Items</h3>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Product</th>
-                      <th style={styles.th}>Qty</th>
-                      <th style={styles.th}>Unit Price</th>
-                      <th style={styles.th}>Line Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(selectedInvoice.items || []).map((item) => (
-                      <tr key={item.order_item_id}>
-                        <td style={styles.td}>{item.product_name}</td>
-                        <td style={styles.td}>{item.quantity}</td>
-                        <td style={styles.td}>{item.unit_price}</td>
-                        <td style={styles.td}>{item.line_total}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div style={styles.invoiceTotalBox}>
-                  <div style={styles.invoiceTotalInner}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                      <span>Total Amount</span>
-                      <strong>{selectedInvoice.total_amount}</strong>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span>Payment Method</span>
-                      <strong>
-                        {selectedInvoice.payments && selectedInvoice.payments.length > 0
-                          ? selectedInvoice.payments[0].payment_method
-                          : "-"}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedInvoice.notes && (
-                  <>
-                    <h3 style={styles.invoiceSectionTitle}>Notes</h3>
-                    <div style={styles.card}>{selectedInvoice.notes}</div>
-                  </>
-                )}
-
-                <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
-                  <button style={styles.button} onClick={downloadInvoicePdf}>
-                    Download PDF
+                <div style={styles.topBar}>
+                  <button style={styles.button} onClick={() => setPage("products")}>
+                    Products
                   </button>
-                  <button
-                    style={styles.secondaryButton}
-                    onClick={() => setPage("orders")}
-                  >
-                    Back to Orders
+                  <button style={styles.button} onClick={() => setPage("customers")}>
+                    Customers
+                  </button>
+                  <button style={styles.button} onClick={() => setPage("orders")}>
+                    Orders
+                  </button>
+                  <button style={styles.button} onClick={() => setPage("reports")}>
+                    Reports
+                  </button>
+                  <button style={styles.button} onClick={() => setPage("dashboard")}>
+                    Dashboard
+                  </button>
+                  <button style={styles.dangerButton} onClick={handleLogout}>
+                    Logout
                   </button>
                 </div>
 
-                <div style={styles.printHint}>
-                  PDF download now uses the backend invoice route.
-                </div>
+                {page === "products" && (
+                  <ProductsPage
+                    styles={styles}
+                    setMessage={setMessage}
+                    handleUnauthorized={handleUnauthorized}
+                    loadDashboard={loadDashboard}
+                    loadLowStock={loadLowStock}
+                  />
+                )}
+
+                {page === "customers" && (
+                  <CustomersPage
+                    styles={styles}
+                    setMessage={setMessage}
+                    handleUnauthorized={handleUnauthorized}
+                    loadDashboard={loadDashboard}
+                  />
+                )}
+
+                {page === "orders" && (
+                  <OrdersPage
+                    styles={styles}
+                    setMessage={setMessage}
+                    handleUnauthorized={handleUnauthorized}
+                    loadDashboard={loadDashboard}
+                    loadLowStock={loadLowStock}
+                  />
+                )}
+
+                {page === "dashboard" && (
+                  <div style={styles.dashboardGrid}>
+                    <div style={styles.statCard}>
+                      <div style={styles.statLabel}>Total Products</div>
+                      <div style={styles.statValue}>{dashboard.total_products}</div>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <div style={styles.statLabel}>Total Customers</div>
+                      <div style={styles.statValue}>{dashboard.total_customers}</div>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <div style={styles.statLabel}>Total Orders</div>
+                      <div style={styles.statValue}>{dashboard.total_orders}</div>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <div style={styles.statLabel}>Total Sales</div>
+                      <div style={styles.statValue}>{etb(dashboard.total_sales)}</div>
+                    </div>
+                  </div>
+                )}
+
+                {page === "reports" && (
+                  <div style={styles.grid2}>
+                    <div style={styles.card}>
+                      <h2>Low Stock Alerts</h2>
+
+                      {lowStock.length === 0 ? (
+                        <p>No low stock alerts.</p>
+                      ) : (
+                        <table style={styles.table}>
+                          <thead>
+                            <tr>
+                              <th style={styles.th}>Item Type</th>
+                              <th style={styles.th}>Item Name</th>
+                              <th style={styles.th}>Qty Available</th>
+                              <th style={styles.th}>Reorder Level</th>
+                              <th style={styles.th}>Unit</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {lowStock.map((item, index) => (
+                              <tr key={index}>
+                                <td style={styles.td}>{item.item_type}</td>
+                                <td style={styles.td}>{item.item_name}</td>
+                                <td style={styles.td}>{item.qty_available}</td>
+                                <td style={styles.td}>{item.reorder_level}</td>
+                                <td style={styles.td}>{item.unit}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+
+                    <div style={styles.card}>
+                      <h2>Sales Summary By Product</h2>
+
+                      {salesSummary.length === 0 ? (
+                        <p>No sales summary available yet.</p>
+                      ) : (
+                        <table style={styles.table}>
+                          <thead>
+                            <tr>
+                              <th style={styles.th}>Product ID</th>
+                              <th style={styles.th}>Product Name</th>
+                              <th style={styles.th}>Total Qty Sold</th>
+                              <th style={styles.th}>Total Revenue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {salesSummary.map((item) => (
+                              <tr key={item.product_id}>
+                                <td style={styles.td}>{item.product_id}</td>
+                                <td style={styles.td}>{item.product_name}</td>
+                                <td style={styles.td}>{item.total_qty_sold}</td>
+                                <td style={styles.td}>{etb(item.total_revenue)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+            </div>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+    </Routes>
   );
 }
